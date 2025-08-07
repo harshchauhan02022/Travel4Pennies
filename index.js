@@ -5,9 +5,11 @@ require('dotenv').config();
 
 const sequelize = require('./src/config/db');
 const userRoutes = require('./src/components/routes/user.Routes');
+const authRoutes = require('./src/components/routes/auth.Routes')
 
 app.use(express.json());
-app.use('/api/users', userRoutes);
+app.use('/api', userRoutes);
+app.use('/auth', authRoutes);
 
 app.get("/", (req, res) => {
     res.json([{ id: 1, name: "Harsh" }]);
