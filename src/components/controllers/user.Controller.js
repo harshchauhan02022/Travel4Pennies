@@ -3,7 +3,7 @@ const Users = require('../models/user.Model');
 
 exports.register = async (req, res) => {
     const { name, email, contact, password } = req.body;
-
+         
     try {
         const existingUser = await Users.findOne({ where: { email } });
         if (existingUser) return res.status(400).json({ message: "Email already exists" });
@@ -23,7 +23,7 @@ exports.register = async (req, res) => {
     }
 };
 exports.loginUser = async (req, res) => {
-    const { email, password } = req.body;                            
+    const { email, password } = req.body;
 
     try {
         const user = await Users.findOne({ where: { email } });

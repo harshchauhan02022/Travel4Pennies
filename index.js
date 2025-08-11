@@ -1,13 +1,30 @@
-// index.js
 const express = require('express');
+const session = require('express-session');
+const passport = require('passport');
 const app = express();
 require('dotenv').config();
 
+// DB
 const sequelize = require('./src/config/db');
+
+// Routes
 const userRoutes = require('./src/components/routes/user.Routes');
-const authRoutes = require('./src/components/routes/auth.Routes')
+const authRoutes = require('./src/components/routes/auth.Routes');
+
+// Passport Config
+require('./src/config/passsport'); // ✅ CORRECTED FILE NAME
 
 app.use(express.json());
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'default_secret_key',
+    resave: false,
+    saveUninitialized: false
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use('/api', userRoutes);
 app.use('/auth', authRoutes);
 
