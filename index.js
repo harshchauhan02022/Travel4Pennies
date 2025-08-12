@@ -3,17 +3,13 @@ const session = require('express-session');
 const passport = require('passport');
 const app = express();
 require('dotenv').config();
-
-// DB
 const sequelize = require('./src/config/db');
 
-// Routes
 const userRoutes = require('./src/components/routes/user.Routes');
 const authRoutes = require('./src/components/routes/auth.Routes');
 const adminRoutes = require('./src/components/routes/admin.Routes')
 
-// Passport Config
-require('./src/config/passsport'); // ✅ CORRECTED FILE NAME
+require('./src/config/passsport');
 
 app.use(express.json());
 

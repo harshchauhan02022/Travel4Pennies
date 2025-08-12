@@ -1,15 +1,13 @@
-// controllers/userController.js
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const Users = require('../models/user.Model'); // adjust path if needed
+const Users = require('../models/user.Model');
 const { Op } = require('sequelize');
 
-// ---- Nodemailer transporter (uses SMTP_ env vars) ----
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT, 10) || 587,
-    secure: false, // use TLS (false for port 587)
+    secure: false, 
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
@@ -19,7 +17,6 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// ---------------- Register ----------------
 exports.register = async (req, res) => {
     try {
         const { name, email, contact, password } = req.body;
@@ -38,7 +35,6 @@ exports.register = async (req, res) => {
     }
 };
 
-// ---------------- Login ----------------
 exports.loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -50,7 +46,6 @@ exports.loginUser = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
-        // If you need a token, generate here (JWT_SECRET must be set)
         res.status(200).json({ message: 'Login successful' });
     } catch (err) {
         console.error('Login error:', err);
@@ -58,7 +53,6 @@ exports.loginUser = async (req, res) => {
     }
 };
 
-// ---------------- Get all users (with pagination) ----------------
 exports.getAllUsers = async (req, res) => {
     try {
         let { page, limit } = req.query;
@@ -85,7 +79,6 @@ exports.getAllUsers = async (req, res) => {
     }
 };
 
-// ---------------- Delete user ----------------
 exports.deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
@@ -100,7 +93,6 @@ exports.deleteUser = async (req, res) => {
     }
 };
 
-// ---------------- Forgot Password (send link) ----------------
 exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
@@ -110,7 +102,7 @@ exports.forgotPassword = async (req, res) => {
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         const token = crypto.randomBytes(32).toString('hex');
-        const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+        const expiry = new Date(Date.now() + 15 * 60 * 1000);
 
         await user.update({
             reset_password_token: token,
@@ -139,7 +131,6 @@ exports.forgotPassword = async (req, res) => {
     }
 };
 
-// ---------------- Reset Password (POST /reset-password/:token) ----------------
 exports.resetPassword = async (req, res) => {
     try {
         const { token } = req.params;
@@ -150,7 +141,7 @@ exports.resetPassword = async (req, res) => {
         const user = await Users.findOne({
             where: {
                 reset_password_token: token,
-                reset_password_expiry: { [Op.gt]: new Date() } // ensure not expired
+                reset_password_expiry: { [Op.gt]: new Date() }
             }
         });
 
@@ -170,7 +161,6 @@ exports.resetPassword = async (req, res) => {
     }
 };
 
-// ---------------- Get user by ID (for testing) ----------------
 exports.getById = async (req, res) => {
     try {
         const { id } = req.params;
