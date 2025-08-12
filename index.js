@@ -10,6 +10,7 @@ const sequelize = require('./src/config/db');
 // Routes
 const userRoutes = require('./src/components/routes/user.Routes');
 const authRoutes = require('./src/components/routes/auth.Routes');
+const adminRoutes = require('./src/components/routes/admin.Routes')
 
 // Passport Config
 require('./src/config/passsport'); // ✅ CORRECTED FILE NAME
@@ -25,6 +26,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+app.use('/api', adminRoutes);
 app.use('/api', userRoutes);
 app.use('/auth', authRoutes);
 
