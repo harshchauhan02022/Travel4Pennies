@@ -2,6 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const app = express();
+const cors = require("cors");
 require('dotenv').config();
 const sequelize = require('./src/config/db');
 
@@ -11,6 +12,11 @@ const adminRoutes = require('./src/components/routes/admin.Routes')
 
 require('./src/config/passsport');
 
+
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}));
 app.use(express.json());
 
 app.use(session({
