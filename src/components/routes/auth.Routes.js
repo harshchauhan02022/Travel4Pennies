@@ -3,25 +3,25 @@ const passport = require('passport');
 const router = express.Router();
 const authController = require('../controllers/auth.Controller');
 
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+// Google login start
+router.get('/google',
+    passport.authenticate('google', { scope: ['openid', 'profile', 'email'] })
+);
 
-router.get('/google/callback',
-    (req, res, next) => {
-        passport.authenticate('google', (err, user, info) => {
-            if (err) return res.status(500).send("OAuth Error: " + err.message);
-            if (!user) return res.status(400).send("Login failed. " + (info?.message || ""));
-            req.logIn(user, (err) => {
-                if (err) return res.status(500).send("Login Error");
-                return res.send("Login Success ✅");
-            });
-        })(req, res, next);
+// Google callback
+router.get(
+    '/google/callback',
+    passport.authenticate('google', { failureRedirect: '/auth/login/failed' }),
+    (req, res) => {
+        res.redirect('/auth/login/success');
     }
 );
 
-
+// Auth status
 router.get('/login/success', authController.loginSuccess);
 router.get('/login/failed', authController.loginFailed);
 
+// Logout
 router.get('/logout', authController.logoutUser);
 
 module.exports = router;

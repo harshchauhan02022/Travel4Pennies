@@ -3,14 +3,14 @@ const jwt = require('jsonwebtoken');
 const Admin = require('../models/admin.Model');
 
 exports.register = async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password } = req.body;       
 
     try {
         const existingAdmin = await Admin.findOne({ where: { email } });
         if (existingAdmin) {
             return res.status(400).json({ message: "Email already exists" });
         }
-
+   
         const hashedPassword = await bcrypt.hash(password, 10);
         const newAdmin = await Admin.create({ name, email, password: hashedPassword });
 

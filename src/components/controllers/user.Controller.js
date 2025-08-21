@@ -5,9 +5,9 @@ const Users = require('../models/user.Model');
 const { Op } = require('sequelize');
 
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',            
     port: parseInt(process.env.SMTP_PORT, 10) || 587,
-    secure: false, 
+    secure: false,
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
@@ -16,7 +16,7 @@ const transporter = nodemailer.createTransport({
         rejectUnauthorized: false
     }
 });
-
+        
 exports.register = async (req, res) => {
     try {
         const { name, email, contact, password } = req.body;
@@ -51,9 +51,9 @@ exports.loginUser = async (req, res) => {
         console.error('Login error:', err);
         res.status(500).json({ message: 'Server error', error: err.message });
     }
-};
+};             
 
-exports.getAllUsers = async (req, res) => {
+exports.getAllUsers = async (req, res) => {      
     try {
         let { page, limit } = req.query;
         page = parseInt(page, 10) || 1;
@@ -109,9 +109,9 @@ exports.forgotPassword = async (req, res) => {
             reset_password_expiry: expiry
         });
 
-        // send frontend link (change FRONTEND_URL to your client url)
-        const frontendUrl = process.env.FRONTEND_URL || `http://localhost:3000`;
-        const resetLink = `${frontendUrl}/reset-password/${token}`;
+        const backendUrl = process.env.BACKEND_URL || `http://localhost:7000/api/user`;
+        const resetLink = `${backendUrl}/reset-password/${token}`;
+
 
         await transporter.sendMail({
             from: process.env.SMTP_USER,
@@ -146,7 +146,7 @@ exports.resetPassword = async (req, res) => {
         });
 
         if (!user) return res.status(400).json({ message: 'Invalid or expired token' });
-
+           
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await user.update({
             password: hashedPassword,

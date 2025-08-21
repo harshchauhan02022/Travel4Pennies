@@ -18,11 +18,16 @@ const User = sequelize.define('User', {
     },
     contact: {
         type: DataTypes.STRING(15),
-        allowNull: false
+        allowNull: true 
     },
     password: {
         type: DataTypes.STRING(255),
-        allowNull: false
+        allowNull: true
+    },
+    googleId: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        unique: true
     },
     reset_password_token: {
         type: DataTypes.STRING,

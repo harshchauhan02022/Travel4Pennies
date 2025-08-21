@@ -10,7 +10,7 @@ const userRoutes = require('./src/components/routes/user.Routes');
 const authRoutes = require('./src/components/routes/auth.Routes');
 const adminRoutes = require('./src/components/routes/admin.Routes')
 
-require('./src/config/passsport');
+require('./src/config/passport');
 
 
 app.use(cors({
