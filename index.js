@@ -9,6 +9,9 @@ const sequelize = require('./src/config/db');
 const userRoutes = require('./src/components/routes/user.Routes');
 const authRoutes = require('./src/components/routes/auth.Routes');
 const adminRoutes = require('./src/components/routes/admin.Routes')
+const flightRoutes = require("./src/components/routes/flight.routes");
+const hotelRoutes = require('./src/components/routes/hotels.Routes')
+const airportRoutes = require("./src/components/routes/airport.routes");
 
 require('./src/config/passport');
 
@@ -31,6 +34,9 @@ app.use(passport.session());
 app.use('/api', adminRoutes);
 app.use('/api', userRoutes);
 app.use('/auth', authRoutes);
+app.use("/api/flights", flightRoutes);
+app.use("/api/hotels", hotelRoutes);
+app.use("/api/airports", airportRoutes);
 
 app.get("/", (req, res) => {
     res.json([{ id: 1, name: "Harsh" }]);
