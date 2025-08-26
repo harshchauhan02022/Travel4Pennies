@@ -1,12 +1,14 @@
 const Airport = require("../models/airport.model");
 const { Op } = require("sequelize");
 
-// Search airports
 exports.searchAirports = async (req, res) => {
     try {
-        const { q } = req.query; // search query
+        const { q } = req.query;
         if (!q) {
-            return res.status(400).json({ message: "Please provide search term ?q=" });
+            return res.status(400).json({
+                success: false,
+                message: "Please provide search term ?q="
+            });
         }
 
         const airports = await Airport.findAll({
@@ -18,12 +20,21 @@ exports.searchAirports = async (req, res) => {
                     { name: { [Op.like]: `%${q}%` } },
                 ],
             },
-            limit: 20, // only 20 results for now
+            limit: 20,
         });
 
-        res.json({ count: airports.length, results: airports });
+        res.json({
+            success: true,
+            count: airports.length,
+            data: airports
+        });
+
     } catch (err) {
         console.error("Airport search error:", err);
-        res.status(500).json({ error: "Server error" });
+        res.status(500).json({
+            success: false,
+            error: "Server error",
+            details: err.message
+        });
     }
 };

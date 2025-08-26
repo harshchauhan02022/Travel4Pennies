@@ -1,7 +1,7 @@
-const express = require("express");
+const express = require('express');
+const { search } = require('../controllers/hotel.controller');
 const router = express.Router();
-const hotelController = require("../controllers/hotel.controller");
 
-router.get("/search", hotelController.searchHotels);
+router.get('/search', search);
 
 module.exports = router;
