@@ -3,6 +3,8 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const Users = require('../models/user.model');
 const { Op } = require('sequelize');
+const jwt = require('jsonwebtoken');
+
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -54,12 +56,25 @@ exports.loginUser = async (req, res) => {
         if (!isMatch)
             return sendResponse(res, 401, false, 'Invalid credentials');
 
-        sendResponse(res, 200, true, 'Login successful', { id: user.id, name: user.name, email: user.email });
+        // Generate JWT Token
+        const token = jwt.sign(
+            { id: user.id, email: user.email },
+            process.env.JWT_SECRET,
+            { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+        );
+
+        sendResponse(res, 200, true, 'Login successful', {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            token
+        });
     } catch (err) {
         console.error('Login error:', err);
         sendResponse(res, 500, false, 'Server error', null, err.message);
     }
 };
+
 
 exports.getAllUsers = async (req, res) => {
     try {
@@ -166,19 +181,21 @@ exports.resetPassword = async (req, res) => {
     }
 };
 
-exports.getById = async (req, res) => {
+exports.getProfile = async (req, res) => {
     try {
-        const { id } = req.params;
-        const user = await Users.findByPk(id, {
+        const user = await Users.findByPk(req.user.id, {
             attributes: ['id', 'name', 'email']
         });
 
-        if (!user)
+        if (!user) {
             return sendResponse(res, 404, false, 'User not found');
+        }
 
-        sendResponse(res, 200, true, 'User fetched successfully', user);
+        return sendResponse(res, 200, true, 'User profile fetched successfully', user);
     } catch (err) {
-        console.error('getById error:', err);
-        sendResponse(res, 500, false, 'Server error', null, err.message);
+        console.error('getProfile error:', err);
+        return sendResponse(res, 500, false, 'Server error', null, err.message);
     }
 };
+
+
