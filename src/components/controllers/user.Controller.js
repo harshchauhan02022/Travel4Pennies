@@ -17,7 +17,6 @@ const transporter = nodemailer.createTransport({
     tls: { rejectUnauthorized: false }
 });
 
-// Helper Response Function
 const sendResponse = (res, statusCode, success, message, data = null, error = null) => {
     res.status(statusCode).json({ success, message, data, error });
 };
@@ -56,7 +55,6 @@ exports.loginUser = async (req, res) => {
         if (!isMatch)
             return sendResponse(res, 401, false, 'Invalid credentials');
 
-        // Generate JWT Token
         const token = jwt.sign(
             { id: user.id, email: user.email },
             process.env.JWT_SECRET,

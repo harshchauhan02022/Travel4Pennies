@@ -10,7 +10,7 @@ router.post('/user/forgot-password', userController.forgotPassword);
 router.post('/user/reset-password/:token', userController.resetPassword);
 
 // Protected Routes (require token)
-router.get('/users', verifyToken, userController.getAllUsers);
+router.get('/users', userController.getAllUsers);
 router.delete('/user/delete/:id', verifyToken, userController.deleteUser);
 router.get('/user', verifyToken, userController.getProfile);
 

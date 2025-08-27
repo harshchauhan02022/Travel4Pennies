@@ -14,10 +14,12 @@ exports.searchAirports = async (req, res) => {
         const airports = await Airport.findAll({
             where: {
                 [Op.or]: [
-                    { iata_code: { [Op.like]: `%${q}%` } },
-                    { municipality: { [Op.like]: `%${q}%` } },
-                    { iso_country: { [Op.like]: `%${q}%` } },
+                    { code: { [Op.like]: `%${q}%` } },
                     { name: { [Op.like]: `%${q}%` } },
+                    { cityCode: { [Op.like]: `%${q}%` } },
+                    { cityName: { [Op.like]: `%${q}%` } },
+                    { countryName: { [Op.like]: `%${q}%` } },
+                    { countryCode: { [Op.like]: `%${q}%` } },
                 ],
             },
             limit: 20,

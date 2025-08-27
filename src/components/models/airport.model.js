@@ -1,21 +1,21 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../../config/db"); // your db connection
+const sequelize = require("../../config/db");
 
 const Airport = sequelize.define("Airport", {
-    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    ident: DataTypes.STRING,
-    type: DataTypes.STRING,
+    code: { 
+        type: DataTypes.STRING, 
+        primaryKey: true  // ✅ this is your PK now
+    },
     name: DataTypes.STRING,
-    elevation_ft: DataTypes.INTEGER,
-    continent: DataTypes.STRING,
-    iso_country: DataTypes.STRING,
-    iso_region: DataTypes.STRING,
-    municipality: DataTypes.STRING,
-    gps_code: DataTypes.STRING,
-    iata_code: DataTypes.STRING,
-    local_code: DataTypes.STRING,
-    latitude_deg: DataTypes.FLOAT,
-    longitude_deg: DataTypes.FLOAT,
+    cityCode: DataTypes.STRING,
+    cityName: DataTypes.STRING,
+    countryName: DataTypes.STRING,
+    countryCode: DataTypes.STRING,
+    timezone: DataTypes.STRING,
+    lat: DataTypes.STRING,
+    lon: DataTypes.STRING,
+    numAirports: DataTypes.INTEGER,
+    city: DataTypes.ENUM("true", "false"),
 }, {
     tableName: "airports",
     timestamps: false,
