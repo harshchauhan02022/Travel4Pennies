@@ -3,88 +3,119 @@
 const amadeus = require('../utils/amadeusClient');
 const { googleHotelLink } = require('../utils/deeplinks');
 
-/**
- * Amadeus Hotel Search (SDK) with batching:
- * 1) Get many hotelIds for a city
- * 2) Call /v3/shopping/hotel-offers in chunks of up to 20 hotelIds
- * 3) Merge + map + sort results
- */
+function withTimeout(promise, ms) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+    ]);
+}
+
 async function searchHotels(cityCode, checkInDate, checkOutDate, adults = 1, limit = 50) {
-    // 1) List hotels by city (ids)
-    const listResp = await amadeus.referenceData.locations.hotels.byCity.get({
-        cityCode,
-        hotelSource: 'ALL',
-    });
+    try {
+        const listResp = await withTimeout(
+            amadeus.referenceData.locations.hotels.byCity.get({
+                cityCode,
+                hotelSource: 'ALL'
+            }),
+            5000 // 5 sec timeout for ID fetch
+        );
 
-    const hotelIds = (listResp.data || []).map((h) => h.hotelId);
+        const hotelIds = (listResp.data || []).slice(0, 100).map(h => h.hotelId);
+        if (!hotelIds.length) throw new Error('No hotels found');
 
-    if (!hotelIds.length) {
-        throw new Error('No hotels found for this city (Amadeus returned empty list)');
-    }
+        const chunkSize = 20;
+        const chunks = [];
+        for (let i = 0; i < hotelIds.length; i += chunkSize) {
+            chunks.push(hotelIds.slice(i, i + chunkSize));
+        }
 
-    // 2) Batch hotelIds (Amadeus typically allows up to ~20 ids per call)
-    const chunkSize = 20;
-    const chunks = [];
-    for (let i = 0; i < hotelIds.length; i += chunkSize) {
-        chunks.push(hotelIds.slice(i, i + chunkSize));
-    }
+        const fetchChunk = ids =>
+            withTimeout(
+                amadeus.shopping.hotelOffersSearch.get({
+                    hotelIds: ids.join(','),
+                    checkInDate,
+                    checkOutDate,
+                    adults: Number(adults) || 1,
+                    sort: 'PRICE',
+                    currency: 'USD',
+                }),
+                10000 // 10 sec per chunk
+            );
 
-    const allOffers = [];
+        const results = await Promise.allSettled(chunks.map(fetchChunk));
 
-    for (const ids of chunks) {
-        const resp = await amadeus.shopping.hotelOffersSearch.get({
-            hotelIds: ids.join(','),
-            checkInDate,
-            checkOutDate,
-            adults: Number(adults) || 1,
-            sort: 'PRICE',
-            currency: 'USD',
-        });
-
-        const data = resp.data || [];
-        for (const h of data) {
-            const hotel = h.hotel || {};
-            const name = hotel.name || 'Unknown';
-            const cityName = hotel.address?.cityName || cityCode;
-
-            // Take the first available offer (cheapest first due to sort=PRICE)
-            if (Array.isArray(h.offers) && h.offers.length) {
-                const first = h.offers[0];
-
-                allOffers.push({
-                    hotelId: hotel.hotelId || h.id,
-                    name,
-                    address: hotel.address?.lines?.join(', ') || cityName,
-                    rating: hotel.rating || null,
-                    price: first?.price?.total || null,
-                    currency: first?.price?.currency || 'USD',
-                    checkInDate: first?.checkInDate || checkInDate,
-                    checkOutDate: first?.checkOutDate || checkOutDate,
-                    bookingLink: googleHotelLink({
-                        city: cityName,
-                        checkIn: checkInDate,
-                        checkOut: checkOutDate,
-                        adults,
-                    }),
+        const allOffers = [];
+        for (const r of results) {
+            if (r.status === 'fulfilled') {
+                (r.value.data || []).forEach(h => {
+                    if (h.offers?.length) {
+                        const hotel = h.hotel || {};
+                        const first = h.offers[0];
+                        allOffers.push({
+                            hotelId: hotel.hotelId || h.id,
+                            name: hotel.name || 'Unknown',
+                            address: hotel.address?.lines?.join(', ') || hotel.address?.cityName || cityCode,
+                            rating: hotel.rating || null,
+                            price: first.price?.total || null,
+                            currency: first.price?.currency || 'USD',
+                            checkInDate: first.checkInDate || checkInDate,
+                            checkOutDate: first.checkOutDate || checkOutDate,
+                            bookingLink: googleHotelLink({
+                                city: hotel.address?.cityName || cityCode,
+                                checkIn: checkInDate,
+                                checkOut: checkOutDate,
+                                adults,
+                            }),
+                        });
+                    }
                 });
             }
         }
 
-        // Stop early when enough items collected
-        if (allOffers.length >= limit) break;
+        if (!allOffers.length) throw new Error('No hotel offers found');
+
+        return allOffers
+            .filter(x => x.price)
+            .sort((a, b) => Number(a.price) - Number(b.price))
+            .slice(0, limit);
+
+    } catch (err) {
+        console.error('searchHotels error:', err.message);
+        throw new Error('Failed to fetch hotels');
     }
-
-    if (!allOffers.length) {
-        throw new Error('No hotel offers found (try production creds / different dates)');
-    }
-
-    // Sort by price (asc) & limit
-    const sorted = allOffers
-        .filter((x) => x.price)
-        .sort((a, b) => Number(a.price) - Number(b.price))
-        .slice(0, limit);
-
-    return sorted;
 }
 
-module.exports = { searchHotels };
+
+async function getHotelCurrentPrice(hotelId, checkInDate, checkOutDate, adults = 1, currency = 'USD') {
+    try {
+        const resp = await amadeus.shopping.hotelOffersSearch.get({
+            hotelIds: hotelId,
+            checkInDate,
+            checkOutDate,
+            adults: Number(adults) || 1,
+            sort: 'PRICE',
+            currency
+        });
+
+        const data = resp.data || [];
+        if (!data.length) return null;
+
+        const h = data[0]; // should correspond to hotelId
+        if (Array.isArray(h.offers) && h.offers.length) {
+            const first = h.offers[0];
+            return {
+                hotelId: h.hotel?.hotelId || h.id || hotelId,
+                hotelName: h.hotel?.name || null,
+                price: parseFloat(first.price?.total || first.price || null),
+                currency: first.price?.currency || currency,
+                offer: first
+            };
+        }
+        return null;
+    } catch (err) {
+        console.error('getHotelCurrentPrice error:', err?.response?.data || err.message || err);
+        return null;
+    }
+}
+
+module.exports = { searchHotels, getHotelCurrentPrice };

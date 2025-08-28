@@ -1,9 +1,6 @@
 const axios = require("axios");
-const { getAccessToken } = require("../utils/amadeus");
+const { getAccessToken, AMADEUS_BASE } = require("../utils/amadeus");
 const { affiliateCarLink } = require("../utils/car.deeplinks");
-require("dotenv").config();
-
-const AMADEUS_BASE = process.env.AMADEUS_BASE;
 
 async function searchCars(cityCode, pickupDate, dropoffDate, drivers = 1) {
   const token = await getAccessToken();
@@ -11,26 +8,25 @@ async function searchCars(cityCode, pickupDate, dropoffDate, drivers = 1) {
   const resp = await axios.get(`${AMADEUS_BASE}/v1/shopping/vehicle-offers`, {
     headers: { Authorization: `Bearer ${token}` },
     params: {
-      pickUpLocationCode: cityCode,   // e.g. LAX
-      pickUpDate: pickupDate,         // 2025-09-10T10:00:00
-      returnDate: dropoffDate,        // 2025-09-15T10:00:00
-      driverAge: 30,                  // required by Amadeus
-      currency: "USD"
-    },
-  });
+
+      locationCode: cityCode,       // Example: "NYC"
+      pickUpDateTime: pickupDate,   // Example: "2025-09-01T10:00:00"
+      returnDateTime: dropoffDate,  // Example: "2025-09-05T10:00:00"
+      driverAge: 30                 // Amadeus requires driver age
+    }
+  }); 
 
   const offers = resp.data.data || [];
-  if (!offers.length) throw new Error("No car rental offers found");
+  if (!offers.length) return [];
 
   return offers.map((offer) => {
     const vehicle = offer.vehicle || {};
-    const provider = vehicle.provider?.name || "Unknown";
-    const model = vehicle.model || "Car";
+    const provider = offer.provider?.name || "Unknown";
 
     return {
-      id: offer.id,
+      carId: offer.id,
       provider,
-      model,
+      model: vehicle.model || "Car",
       category: vehicle.vehicleType || null,
       price: offer.price?.total || null,
       currency: offer.price?.currency || "USD",
