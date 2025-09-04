@@ -7,7 +7,7 @@ const { verifyToken } = require('../middlewares/authMiddleware');
 router.post('/user/register', userController.register);
 router.post('/user/login', userController.loginUser);
 router.post('/user/forgot-password', userController.forgotPassword);
-router.post('/user/reset-password/:token', userController.resetPassword);
+router.post('/user/reset-password', userController.resetPassword);
 
 // Protected Routes (require token)
 router.get('/users', userController.getAllUsers);

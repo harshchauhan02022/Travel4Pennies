@@ -1,5 +1,3 @@
-// services/searchHotels.js
-
 const amadeus = require('../utils/amadeusClient');
 const { googleHotelLink } = require('../utils/deeplinks');
 
@@ -17,7 +15,7 @@ async function searchHotels(cityCode, checkInDate, checkOutDate, adults = 1, lim
                 cityCode,
                 hotelSource: 'ALL'
             }),
-            5000 // 5 sec timeout for ID fetch
+            5000 
         );
 
         const hotelIds = (listResp.data || []).slice(0, 100).map(h => h.hotelId);
@@ -39,7 +37,7 @@ async function searchHotels(cityCode, checkInDate, checkOutDate, adults = 1, lim
                     sort: 'PRICE',
                     currency: 'USD',
                 }),
-                10000 // 10 sec per chunk
+                10000 
             );
 
         const results = await Promise.allSettled(chunks.map(fetchChunk));
@@ -66,6 +64,7 @@ async function searchHotels(cityCode, checkInDate, checkOutDate, adults = 1, lim
                                 checkOut: checkOutDate,
                                 adults,
                             }),
+
                         });
                     }
                 });
@@ -84,8 +83,7 @@ async function searchHotels(cityCode, checkInDate, checkOutDate, adults = 1, lim
         throw new Error('Failed to fetch hotels');
     }
 }
-
-
+           
 async function getHotelCurrentPrice(hotelId, checkInDate, checkOutDate, adults = 1, currency = 'USD') {
     try {
         const resp = await amadeus.shopping.hotelOffersSearch.get({
@@ -100,7 +98,7 @@ async function getHotelCurrentPrice(hotelId, checkInDate, checkOutDate, adults =
         const data = resp.data || [];
         if (!data.length) return null;
 
-        const h = data[0]; // should correspond to hotelId
+        const h = data[0]; 
         if (Array.isArray(h.offers) && h.offers.length) {
             const first = h.offers[0];
             return {

@@ -114,7 +114,7 @@ exports.deleteUser = async (req, res) => {
         sendResponse(res, 500, false, 'Server error', null, err.message);
     }
 };
-
+        
 exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
@@ -153,31 +153,32 @@ exports.forgotPassword = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
     try {
-        const { token } = req.params;
-        const { newPassword } = req.body;
-
-        if (!newPassword)
-            return sendResponse(res, 400, false, 'New password is required');
-
-        const user = await Users.findOne({
-            where: {
-                reset_password_token: token,
-                reset_password_expiry: { [Op.gt]: new Date() }
-            }
-        });
-
-        if (!user)
-            return sendResponse(res, 400, false, 'Invalid or expired token');
-
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        await user.update({ password: hashedPassword, reset_password_token: null, reset_password_expiry: null });
-
-        sendResponse(res, 200, true, 'Password reset successfully');
+      const { email, id, newPassword } = req.body;
+  
+      if (!newPassword)
+        return sendResponse(res, 400, false, 'New password is required');
+  
+      let user;
+  
+      if (email) {
+        user = await Users.findOne({ where: { email } });
+      } else if (id) {
+        user = await Users.findOne({ where: { id } });
+      }
+  
+      if (!user)
+        return sendResponse(res, 404, false, 'User not found');
+  
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await user.update({ password: hashedPassword });
+  
+      sendResponse(res, 200, true, 'Password reset successfully');
     } catch (err) {
-        console.error('resetPassword error:', err);
-        sendResponse(res, 500, false, 'Server error', null, err.message);
+      console.error('resetPassword error:', err);
+      sendResponse(res, 500, false, 'Server error', null, err.message);
     }
-};
+  };
+  
 
 exports.getProfile = async (req, res) => {
     try {
