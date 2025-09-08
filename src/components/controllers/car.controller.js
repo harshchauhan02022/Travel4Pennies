@@ -1,23 +1,37 @@
-const { searchCars } = require("../../services/car.service");
+const { scrapeCars } = require('../../services/car.service');
+// const { scrapeExpediaCars } = require("../../services/expedia.service");
 
-exports.searchCars = async (req, res) => {
+exports.getCars = async (req, res) => {
   try {
-    const { cityCode, pickupDate, dropoffDate } = req.query;
+    const { city, pickup, dropoff, page = 1, limit = 10 } = req.query;
 
-    if (!cityCode || !pickupDate || !dropoffDate) {
-      return res.status(400).json({
-        success: false,
-        error: "Please provide cityCode, pickupDate, and dropoffDate",
-      });
+    if (!city || !pickup || !dropoff) {
+      return res.status(400).json({ success: false, error: 'Missing parameters' });
     }
 
-    const cars = await searchCars(cityCode, pickupDate, dropoffDate);
-    res.json({ success: true, data: cars });
-  } catch (error) {
-    console.error(error.response?.data || error.message);
-    res.status(500).json({
-      success: false,
-      error: error.response?.data || error.message,
-    });
+    const result = await scrapeCars(city, pickup, dropoff, parseInt(page), parseInt(limit));
+
+    res.json(result);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: 'Scraping failed', details: err.message });
   }
 };
+
+// exports.getExpediaCars = async (req, res) => {
+//   try {
+//     const { city, pickupDate, dropoffDate, pickupTime, dropoffTime } = req.query;
+
+//     if (!city || !pickupDate || !dropoffDate) {
+//       return res.status(400).json({ success: false, error: "Missing parameters" });
+//     }
+
+//     const result = await scrapeExpediaCars(city, pickupDate, dropoffDate, pickupTime, dropoffTime);
+//     res.json(result);
+
+//   } catch (err) {
+//     console.error("❌ Controller Error:", err.message);
+//     res.status(500).json({ success: false, error: "Internal server error" });
+//   }
+// };

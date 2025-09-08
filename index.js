@@ -35,10 +35,10 @@ app.use(passport.session());
 app.use('/api', adminRoutes);
 app.use('/api', userRoutes);
 app.use('/auth', authRoutes);
-app.use("/api/flights", flightRoutes);
-app.use("/api/hotels", hotelRoutes);
+app.use("/api", flightRoutes);
+app.use("/api", hotelRoutes);
 app.use("/api/airports", airportRoutes);
-app.use('/api/cars', carRoutes);
+app.use('/api', carRoutes);
 
 app.get("/", (req, res) => {
     res.json([{ id: 1, name: "Harsh" }]);

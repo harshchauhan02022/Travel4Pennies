@@ -1,7 +1,8 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const flightCtrl = require('../controllers/flight.controller');
+const { getFlights } = require("../controllers/flight.controller");
 
-router.get('/search', flightCtrl.search);
+// GET /api/flights?from=DEL&to=JFK&departDate=2025-09-20&returnDate=2025-09-28
+router.get("/flights", getFlights);
 
 module.exports = router;
