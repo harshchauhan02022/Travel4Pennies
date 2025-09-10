@@ -1,55 +1,81 @@
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-extra");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteer.use(StealthPlugin());
 
-exports.scrapeFlights = async (from, to, departDate, returnDate) => {
-  const url = `https://www.booking.com/flights/index.html?origin=${from}&destination=${to}&depart=${departDate}${returnDate ? `&return=${returnDate}` : ""}`;
-
+async function scrapeFlights(from, to, departDate, returnDate) {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
-  try {
-    const page = await browser.newPage();
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+  const page = await browser.newPage();
+  await page.setUserAgent(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  );
 
-    // Wait until loader disappears (important for Booking)
-    try {
-      await page.waitForSelector('[data-testid="search_loader"]', { timeout: 15000 });
-      await page.waitForSelector('[data-testid="search_loader"]', { hidden: true, timeout: 60000 });
-    } catch (e) {
-      console.log("Loader not found, continuing...");
-    }
+  const url = `https://www.skyscanner.com/transport/flights/${from}/${to}/${departDate}/${returnDate}/?adultsv2=1&currency=USD`;
+  console.log("🔎 Navigating to:", url);
 
-    // Now wait for flights
-    await page.waitForSelector('[data-testid="flight_card_outer"], [data-testid="flight_card_segment"]', { timeout: 60000 });
+  await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
 
-    const flights = await page.evaluate(() => {
-      let results = [];
-      const cards = document.querySelectorAll('[data-testid="flight_card_outer"], [data-testid="flight_card_segment"]');
+  // Wait for flight cards – fallback to multiple possible selectors
+  const flightCardSelector = '[data-testid="flight_card_outer"], [data-testid="flight_card_segment"], .ItineraryItem';
+  await page.waitForSelector(flightCardSelector, { timeout: 30000 });
 
-      cards.forEach(el => {
-        results.push({
-          airline: el.querySelector('[data-testid="flight_card_carrier"]')?.innerText || null,
-          departure: el.querySelector('[data-testid="flight_card_segment_departure_time"]')?.innerText || null,
-          arrival: el.querySelector('[data-testid="flight_card_segment_arrival_time"]')?.innerText || null,
-          duration: el.querySelector('[data-testid="flight_card_segment_duration"]')?.innerText || null,
-          price: el.querySelector('[data-testid="flight_card_price_main_price"]')?.innerText?.replace("US$", "$") || null,
-          link: window.location.href
-        });
-      });
+  // Scroll to load more flights
+  await autoScroll(page);
 
-      return results;
+  // Extract data
+  const flights = await page.evaluate(() => {
+    const results = [];
+    const cards = document.querySelectorAll(
+      '[data-testid="flight_card_outer"], [data-testid="flight_card_segment"], .ItineraryItem'
+    );
+    cards.forEach((card) => {
+      const airline =
+        card.querySelector('[data-testid="airline-name"]')?.innerText ||
+        card.querySelector(".LegInfo_airlineName")?.innerText ||
+        "";
+      const depart =
+        card.querySelector('[data-testid="departure-time"]')?.innerText ||
+        card.querySelector(".LegInfo_departureTime")?.innerText ||
+        "";
+      const arrive =
+        card.querySelector('[data-testid="arrival-time"]')?.innerText ||
+        card.querySelector(".LegInfo_arrivalTime")?.innerText ||
+        "";
+      const price =
+        card.querySelector('[data-testid="price-text"]')?.innerText ||
+        card.querySelector(".Price_mainPriceContainer")?.innerText ||
+        "";
+      const link =
+        card.querySelector('a[aria-label*="Select"]')?.href || "";
+
+      if (airline || price) results.push({ airline, depart, arrive, price, bookingLink: link });
     });
+    return results;
+  });
 
-    await browser.close();
+  await browser.close();
+  return flights;
+}
 
-    if (!flights || flights.length === 0) {
-      throw new Error("No flights found – check route or date");
-    }
+async function autoScroll(page) {
+  await page.evaluate(async () => {
+    await new Promise((resolve) => {
+      let totalHeight = 0;
+      const distance = 500;
+      const timer = setInterval(() => {
+        const scrollHeight = document.body.scrollHeight;
+        window.scrollBy(0, distance);
+        totalHeight += distance;
+        if (totalHeight >= scrollHeight - window.innerHeight) {
+          clearInterval(timer);
+          resolve();
+        }
+      }, 500);
+    });
+  });
+}
 
-    return flights;
-  } catch (err) {
-    await browser.close();
-    throw err;
-  }
-};
+module.exports = { scrapeFlights };
