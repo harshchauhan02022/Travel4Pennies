@@ -38,7 +38,7 @@ app.use('/auth', authRoutes);
 app.use("/api/kayak", flightRoutes);
 app.use("/api", hotelRoutes);
 app.use("/api/airports", airportRoutes);
-app.use('/api', carRoutes);
+app.use('/api/cars', carRoutes);
 
 app.get("/", (req, res) => {
     res.json([{ id: 1, name: "Harsh" }]);
