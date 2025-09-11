@@ -35,7 +35,7 @@ app.use(passport.session());
 app.use('/api', adminRoutes);
 app.use('/api', userRoutes);
 app.use('/auth', authRoutes);
-app.use("/api", flightRoutes);
+app.use("/api/kayak", flightRoutes);
 app.use("/api", hotelRoutes);
 app.use("/api/airports", airportRoutes);
 app.use('/api', carRoutes);

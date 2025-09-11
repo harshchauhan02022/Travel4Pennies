@@ -5,24 +5,18 @@ exports.getFlights = async (req, res) => {
     const { from, to, departDate, returnDate } = req.query;
 
     if (!from || !to || !departDate) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing required parameters: from, to, departDate",
-      });
+      return res.status(400).json({ success: false, message: "Missing required params" });
     }
 
-    const flights = await scrapeFlights(from, to, departDate, returnDate);
+    const data = await scrapeFlights(from, to, departDate, returnDate);
 
     res.json({
       success: true,
-      count: flights.length,
-      data: flights,
+      count: data.length,
+      flights: data,
     });
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: "Scraping failed",
-      details: err.message,
-    });
+  } catch (error) {
+    console.error("Error scraping flights:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };

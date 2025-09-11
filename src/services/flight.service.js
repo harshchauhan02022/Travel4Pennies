@@ -2,6 +2,25 @@ const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 
+// Utility: Convert "07:55" + baseDate => ISO datetime
+function formatDateTime(baseDate, timeStr) {
+  if (!timeStr) return "";
+
+  let nextDay = timeStr.includes("+1");
+  let cleanTime = timeStr.replace("+1", "").trim();
+
+  let [hh, mm] = cleanTime.split(":").map(Number);
+
+  let dateObj = new Date(baseDate);
+  dateObj.setHours(hh, mm, 0, 0);
+
+  if (nextDay) {
+    dateObj.setDate(dateObj.getDate() + 1);
+  }
+
+  return dateObj.toISOString();
+}
+
 async function scrapeFlights(from, to, departDate, returnDate) {
   const browser = await puppeteer.launch({
     headless: true,
@@ -9,73 +28,90 @@ async function scrapeFlights(from, to, departDate, returnDate) {
   });
 
   const page = await browser.newPage();
+
+  // US user-agent set karna zaroori hai
   await page.setUserAgent(
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
   );
 
-  const url = `https://www.skyscanner.com/transport/flights/${from}/${to}/${departDate}/${returnDate}/?adultsv2=1&currency=USD`;
-  console.log("🔎 Navigating to:", url);
+  // URL with return date
+  const url = `https://www.kayak.co.in/flights/${from}-${to}/${departDate}/${returnDate}?sort=bestflight_a`;
 
-  await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
+  await new Promise((r) => setTimeout(r, 8000));
 
-  // Wait for flight cards – fallback to multiple possible selectors
-  const flightCardSelector = '[data-testid="flight_card_outer"], [data-testid="flight_card_segment"], .ItineraryItem';
-  await page.waitForSelector(flightCardSelector, { timeout: 30000 });
+  // Check captcha
+  const bodyText = await page.evaluate(() => document.body.innerText);
+  if (bodyText.includes("Please verify you are a human")) {
+    throw new Error("Captcha detected. Kayak blocked this request.");
+  }
 
-  // Scroll to load more flights
-  await autoScroll(page);
+  // Flexible selector
+  await page.waitForSelector("div.resultWrapper, div.resultCard, .nrc6", { timeout: 90000 });
 
-  // Extract data
   const flights = await page.evaluate(() => {
     const results = [];
-    const cards = document.querySelectorAll(
-      '[data-testid="flight_card_outer"], [data-testid="flight_card_segment"], .ItineraryItem'
-    );
-    cards.forEach((card) => {
-      const airline =
-        card.querySelector('[data-testid="airline-name"]')?.innerText ||
-        card.querySelector(".LegInfo_airlineName")?.innerText ||
-        "";
-      const depart =
-        card.querySelector('[data-testid="departure-time"]')?.innerText ||
-        card.querySelector(".LegInfo_departureTime")?.innerText ||
-        "";
-      const arrive =
-        card.querySelector('[data-testid="arrival-time"]')?.innerText ||
-        card.querySelector(".LegInfo_arrivalTime")?.innerText ||
-        "";
-      const price =
-        card.querySelector('[data-testid="price-text"]')?.innerText ||
-        card.querySelector(".Price_mainPriceContainer")?.innerText ||
-        "";
-      const link =
-        card.querySelector('a[aria-label*="Select"]')?.href || "";
 
-      if (airline || price) results.push({ airline, depart, arrive, price, bookingLink: link });
+    document.querySelectorAll(".nrc6").forEach((el) => {
+      const raw = el.innerText;
+
+      // Airline
+      const airline = raw.split("\n").map(l => l.trim()).filter(Boolean).pop();
+
+      // Price
+      const priceMatch = raw.match(/₹\s?[\d,]+/);
+      const price = priceMatch ? priceMatch[0] : "";
+
+      // Departure & Arrival times
+      const times = raw.match(/(\d{1,2}:\d{2}(?:\+\d)?)/g) || [];
+      const depart = times[0] || "";
+      const arrive = times[1] || "";
+
+      // Duration
+      const durationMatch = raw.match(/(\d+h\s?\d+m|\d+h)/);
+      const duration = durationMatch ? durationMatch[0] : "";
+
+      // Stops
+      let stops = "Direct";
+      if (raw.toLowerCase().includes("stopover")) {
+        const stopMatch = raw.match(/(\d+h\s?\d+m stopover .+)/);
+        stops = stopMatch ? stopMatch[0] : "With Stops";
+      } else if (raw.toLowerCase().includes("direct")) {
+        stops = "Direct";
+      }
+
+      // Booking link
+      const bookingLink = el.querySelector("a")?.href || "";
+
+      results.push({
+        airline,
+        price,
+        depart,
+        arrive,
+        duration,
+        stops,
+        bookingLink,
+      });
     });
+
     return results;
   });
 
-  await browser.close();
-  return flights;
-}
+  // Map with proper datetime
+  const formattedFlights = flights.map((f) => ({
+    airline: f.airline,
+    price: f.price,
+    depart: f.depart,
+    departDateTime: formatDateTime(departDate, f.depart),
+    arrive: f.arrive,
+    arriveDateTime: formatDateTime(departDate, f.arrive),
+    duration: f.duration,
+    stops: f.stops,
+    bookingLink: f.bookingLink,
+  }));
 
-async function autoScroll(page) {
-  await page.evaluate(async () => {
-    await new Promise((resolve) => {
-      let totalHeight = 0;
-      const distance = 500;
-      const timer = setInterval(() => {
-        const scrollHeight = document.body.scrollHeight;
-        window.scrollBy(0, distance);
-        totalHeight += distance;
-        if (totalHeight >= scrollHeight - window.innerHeight) {
-          clearInterval(timer);
-          resolve();
-        }
-      }, 500);
-    });
-  });
+  await browser.close();
+  return formattedFlights;
 }
 
 module.exports = { scrapeFlights };
