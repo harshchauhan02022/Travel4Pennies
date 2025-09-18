@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const { searchCars } = require("../controllers/car.controller");
+const { saveCars, getCars, searchCars } = require("../controllers/car.controller");
 
-router.get("/search", searchCars);
+router.post("/cars/save", saveCars);
+router.get("/cars/search", searchCars);   // 🆕
+
+router.get("/cars", getCars);   
 
 module.exports = router;

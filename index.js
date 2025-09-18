@@ -13,6 +13,7 @@ const flightRoutes = require("./src/components/routes/flight.routes");
 const hotelRoutes = require('./src/components/routes/hotels.Routes')
 const airportRoutes = require("./src/components/routes/airport.routes");
 const carRoutes = require('./src/components/routes/car.Routes');
+const amadeusRoutes = require('./src/components/Amadeus/AmadeusRotes')
 
 require('./src/config/passport');
 
@@ -38,7 +39,8 @@ app.use('/auth', authRoutes);
 app.use("/api/kayak", flightRoutes);
 app.use("/api", hotelRoutes);
 app.use("/api/airports", airportRoutes);
-app.use('/api/cars', carRoutes);
+app.use('/api', carRoutes);
+app.use('/', amadeusRoutes);
 
 app.get("/", (req, res) => {
     res.json([{ id: 1, name: "Harsh" }]);
