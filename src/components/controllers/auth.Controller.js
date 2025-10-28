@@ -13,7 +13,7 @@ exports.loginSuccess = (req, res) => {
     } 
 };
 
-exports.loginFailed = (req, res) => {
+exports.loginFailed = (req, res) => {   
     res.status(401).json({
         success: false,
         message: 'Login failed ❌'

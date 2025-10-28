@@ -12,6 +12,7 @@ const adminRoutes = require('./src/components/routes/admin.Routes')
 const flightRoutes = require("./src/components/routes/flight.routes");
 const hotelRoutes = require('./src/components/routes/hotels.Routes')
 const airportRoutes = require("./src/components/routes/airport.routes");
+const carRoutes = require("./src/components/routes/car.routes")
 
 require('./src/config/passport');
 
@@ -37,6 +38,7 @@ app.use('/auth', authRoutes);
 app.use("/api/flights", flightRoutes);
 app.use("/api/hotels", hotelRoutes);
 app.use("/api/airports", airportRoutes);
+app.use("/api/cars", carRoutes)
 
 app.get("/", (req, res) => {
     res.json([{ id: 1, name: "Harsh" }]);
