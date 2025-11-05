@@ -1,9 +1,5 @@
 const amadeus = require('../utils/amadeusClient');
 
-/**
- * Search Flights (One-way or Return)
- * Works in both Sandbox & Production
- */
 async function searchFlights(origin, destination, departureDate, returnDate, adults = 1, limit = 10) {
   const params = {
     originLocationCode: origin,
@@ -19,7 +15,6 @@ async function searchFlights(origin, destination, departureDate, returnDate, adu
   const response = await amadeus.shopping.flightOffersSearch.get(params);
   const data = response.data || [];
 
-  // 🧩 Format results
   const flights = data.map((flight) => {
     const firstItinerary = flight.itineraries?.[0];
     const firstSegment = firstItinerary?.segments?.[0];

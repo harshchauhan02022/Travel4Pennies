@@ -34,7 +34,6 @@ async function searchCars(pickupLocation, pickupDateTime, returnDateTime, curren
             ];
         }
 
-        // ✅ Production environment के लिए actual API call
         const response = await amadeus.shopping.carRentals.get({
             pickupLocation,
             pickupDateTime,
@@ -57,9 +56,8 @@ async function searchCars(pickupLocation, pickupDateTime, returnDateTime, curren
         }));
 
     } catch (error) {
-        console.error("❌ Failed to fetch car rentals from Amadeus:", error.response?.data || error.message);
+        console.error("Failed to fetch car rentals from Amadeus:", error.response?.data || error.message);
 
-        // fallback to dummy data if production call fails
         return [
             {
                 id: "X1",

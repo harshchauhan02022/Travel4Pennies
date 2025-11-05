@@ -8,7 +8,7 @@ const Airport = sequelize.define("Airport", {
     name: DataTypes.STRING,
     elevation_ft: DataTypes.INTEGER,
     continent: DataTypes.STRING,
-    iso_country: DataTypes.STRING,
+    iso_country: DataTypes.STRING, 
     iso_region: DataTypes.STRING,
     municipality: DataTypes.STRING,
     gps_code: DataTypes.STRING,
